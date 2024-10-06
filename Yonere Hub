@@ -1,0 +1,122 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local userInputService = game:GetService("UserInputService")
+
+-- Jumping Mechanism
+userInputService.JumpRequest:Connect(function()
+    if character and character:FindFirstChildOfClass("Humanoid") then
+        character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Potion Definitions
+local potions = {
+    {name = "Shield Potion", clickDetector = nil},
+    {name = "Health Potion", clickDetector = nil},
+    {name = "Speed Potion", clickDetector = nil},
+    {name = "Jump Potion", clickDetector = nil}
+}
+
+-- Find ClickDetectors for Potions
+for _, potion in pairs(potions) do
+    local potionObject = game.Workspace:FindFirstChild(potion.name)
+    if potionObject then
+        potion.clickDetector = potionObject:FindFirstChildOfClass("ClickDetector")
+    end
+end
+
+-- Function to Buy Potion
+function buyPotion(potion)
+    if potion.clickDetector then
+        fireclickdetector(potion.clickDetector)
+    end
+end
+
+-- Auto-buy Potions Loop
+spawn(function()
+    while true do
+        for _, potion in pairs(potions) do
+            buyPotion(potion)
+        end
+        wait(1) -- Wait 1 second before trying to buy again
+    end
+end)
+
+-- Enemy Attack Mechanism
+local reachDistance = 10  -- Adjust the reach distance here
+local attackCooldown = 0.5 -- Time between attacks in seconds
+
+function isEnemy(targetPlayer)
+    return targetPlayer.Team ~= player.Team and targetPlayer.Character and targetPlayer.Character:FindFirstChild("Humanoid") and targetPlayer.Character.Humanoid.Health > 0
+end
+
+function attackEnemy(enemy)
+    if (character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).magnitude <= reachDistance then
+        fireclickdetector(enemy.Character:FindFirstChildOfClass("ClickDetector"))
+    end
+end
+
+-- Auto-attack Enemies Loop
+spawn(function()
+    while wait(attackCooldown) do
+        for _, enemy in pairs(game.Players:GetPlayers()) do
+            if isEnemy(enemy) then
+                attackEnemy(enemy)
+            end
+        end
+    end
+end)
+
+-- UI Library
+local Library = loadstring(game:HttpGet("URL_TO_YOUR_LIBRARY"))() -- Make sure to replace this with the actual URL to your UI library
+local Window = Library.CreateLib("TITLE HERE", "DarkTheme")
+
+local Tab = Window:NewTab("Tab Name")
+local Section = Tab:NewSection("Section Name")
+
+-- Toggle Example
+Section:NewToggle("ToggleText", "ToggleInfo", function(state)
+    if state then
+        print("Toggle On")
+    else
+        print("Toggle Off")
+    end
+end)
+
+-- Button Example
+Section:NewButton("ButtonText", "ButtonInfo", function()
+    print("Clicked")
+end)
+
+-- Slider Example for WalkSpeed
+Section:NewSlider("SliderText", "SliderInfo", 500, 0, function(s) -- 500 (MaxValue) | 0 (MinValue)
+    player.Character.Humanoid.WalkSpeed = s
+end)
+
+-- TextBox Example
+Section:NewTextBox("TextboxText", "TextboxInfo", function(txt)
+    print(txt)
+end)
+
+-- Keybind Example
+Section:NewKeybind("KeybindText", "KeybindInfo", Enum.KeyCode.F, function()
+    print("You just clicked the bind")
+end)
+
+-- Dropdown Example
+local oldList = {
+    "2019",
+    "2020"
+}
+local newList = {
+    "2021",
+    "2022"
+}
+
+local dropdown = Section:NewDropdown("Dropdown", "Info", oldList, function(currentOption)
+    print(currentOption)
+end)
+
+Section:NewButton("Update Dropdown", "Refreshes Dropdown", function()
+    dropdown:Refresh(newList)
+end)
