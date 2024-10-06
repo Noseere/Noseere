@@ -1,0 +1,156 @@
+local player = game.Players.LocalPlayer
+local userInputService = game:GetService("UserInputService")
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+
+-- Variables de control
+local collectingOres = false
+local attackingEnemies = false
+local buyingPotions = false
+
+-- Función para crear botones en la GUI
+local function createButton(name, position, onClickFunction)
+    local button = Instance.new("TextButton", gui)
+    button.Text = name
+    button.Size = UDim2.new(0, 200, 0, 50)
+    button.Position = position
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Color de fondo
+    button.TextColor3 = Color3.fromRGB(255, 255, 255) -- Color del texto
+    button.Font = Enum.Font.SourceSansBold
+    button.TextSize = 18
+    button.BorderSizePixel = 0
+    button.BackgroundTransparency = 0.2
+
+    -- Efecto de hover
+    button.MouseEnter:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(70, 70, 70) -- Color de hover
+    end)
+    button.MouseLeave:Connect(function()
+        button.BackgroundColor3 = Color3.fromRGB(50, 50, 50) -- Color normal
+    end)
+
+    button.MouseButton1Click:Connect(onClickFunction)
+    
+    return button
+end
+
+-- Crear la cabecera de la GUI
+local title = Instance.new("TextLabel", gui)
+title.Text = "Nexus Hub"
+title.Size = UDim2.new(0, 200, 0, 50)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 24
+title.BorderSizePixel = 0
+title.BackgroundTransparency = 0.5
+
+-- Botones para activar/desactivar funcionalidades
+createButton("Toggle Ores", UDim2.new(0, 0, 0, 60), function()
+    collectingOres = not collectingOres
+    print("Collecting Ores: " .. tostring(collectingOres))
+end)
+
+createButton("Toggle Attack", UDim2.new(0, 0, 0, 120), function()
+    attackingEnemies = not attackingEnemies
+    print("Attacking Enemies: " .. tostring(attackingEnemies))
+end)
+
+createButton("Toggle Potions", UDim2.new(0, 0, 0, 180), function()
+    buyingPotions = not buyingPotions
+    print("Buying Potions: " .. tostring(buyingPotions))
+end)
+
+-- Saltar
+userInputService.JumpRequest:Connect(function()
+    if player.Character and player.Character:FindFirstChildOfClass("Humanoid") then
+        player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+end)
+
+-- Asegúrate de que el nombre de las pociones sea correcto
+local potions = {
+    {name = "Shield Potion", clickDetector = nil},
+    {name = "Health Potion", clickDetector = nil},
+    {name = "Speed Potion", clickDetector = nil},
+    {name = "Jump Potion", clickDetector = nil}
+}
+
+-- Encuentra los ClickDetectors de las pociones
+for _, potion in pairs(potions) do
+    local potionObject = game.Workspace:FindFirstChild(potion.name)
+    if potionObject then
+        potion.clickDetector = potionObject:FindFirstChildOfClass("ClickDetector")
+    end
+end
+
+function buyPotion(potion)
+    if potion.clickDetector then
+        fireclickdetector(potion.clickDetector)
+    end
+end
+
+-- Hilo para comprar pociones
+spawn(function()
+    while true do
+        if buyingPotions then
+            for _, potion in pairs(potions) do
+                buyPotion(potion)
+            end
+        end
+        wait(1) -- Espera 1 segundo antes de intentar comprar de nuevo
+    end
+end)
+
+-- Alcance y ataque
+local reachDistance = 10  -- Ajusta la distancia de alcance aquí
+local attackCooldown = 0.5 -- Tiempo entre ataques en segundos
+
+function isEnemy(enemyPlayer)
+    return enemyPlayer.Team ~= player.Team and enemyPlayer.Character and enemyPlayer.Character:FindFirstChild("Humanoid") and enemyPlayer.Character.Humanoid.Health > 0
+end
+
+function attackEnemy(enemy)
+    if (player.Character.HumanoidRootPart.Position - enemy.Character.HumanoidRootPart.Position).magnitude <= reachDistance then
+        fireclickdetector(enemy.Character:FindFirstChildOfClass("ClickDetector"))
+    end
+end
+
+-- Hilo para atacar enemigos
+spawn(function()
+    while true do
+        if attackingEnemies then
+            for _, enemy in pairs(game.Players:GetPlayers()) do
+                if isEnemy(enemy) then
+                    attackEnemy(enemy)
+                end
+            end
+        end
+        wait(attackCooldown) -- Espera el tiempo de cooldown
+    end
+end)
+
+-- Recoger ores
+local ores = {"Coal", "Emerald", "Gold", "Diamond", "Iron"}
+
+function collectOre()
+    for _, oreName in pairs(ores) do
+        local ore = game.Workspace:FindFirstChild(oreName)
+        if ore and (ore:IsA("Part") or ore:IsA("MeshPart")) then
+            -- Verifica si el ore es recogible
+            if (player.Character.HumanoidRootPart.Position - ore.Position).magnitude < 10 then
+                fireclickdetector(ore:FindFirstChildOfClass("ClickDetector"))
+            end
+        end
+    end
+end
+
+-- Hilo para recoger ores
+spawn(function()
+    while true do
+        if collectingOres then
+            collectOre()
+        end
+        wait(1) -- Espera 1 segundo antes de intentar recoger de nuevo
+    end
+end)
