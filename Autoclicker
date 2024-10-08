@@ -1,9 +1,9 @@
 -- Esperar hasta que el juego esté completamente cargado
-repeat task.wait(0.25) until game:IsLoaded();
+repeat task.wait(0.25) until game:IsLoaded()
 
 -- Configuración del botón: imagen y tecla para alternar la UI Fluent
-getgenv().Image = "rbxassetid://76665714186511"; -- ID de la imagen que aparecerá en el botón
-getgenv().ToggleUI = "U"; -- Tecla que alternará la visibilidad de la interfaz Fluent UI
+getgenv().Image = "rbxassetid://76665714186511" -- ID de la imagen que aparecerá en el botón
+getgenv().ToggleUI = "U" -- Tecla que alternará la visibilidad de la interfaz Fluent UI
 
 -- Crear el botón y añadir funcionalidad
 task.spawn(function()
@@ -93,7 +93,7 @@ Tabs.Main:AddToggle("HitboxToggle", {
                 for _, player in pairs(game:GetService("Players"):GetPlayers()) do
                     if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                         local rootPart = player.Character.HumanoidRootPart
-                        rootPart.Size = Vector3.new(9, 9, 9) -- Cambiar el tamaño de la hitbox a 7
+                        rootPart.Size = Vector3.new(9, 9, 9) -- Cambiar el tamaño de la hitbox
                         rootPart.Transparency = 0.5 -- Hacer la hitbox semitransparente (opcional)
                         rootPart.CanCollide = false -- Asegurarse de que no cause colisiones extrañas
                     end
@@ -116,10 +116,30 @@ Tabs.Main:AddToggle("HitboxToggle", {
     end
 })
 
--- Guardar la posición del clic cuando el jugador hace clic en la pantalla
+-- Guardar la posición del clic mientras el jugador toca la pantalla
 UserInputService.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        lastClickPosition = Vector2.new(input.Position.X, input.Position.Y) -- Asegúrate de que es un Vector2
+        lastClickPosition = Vector2.new(input.Position.X, input.Position.Y) -- Guardar la posición inicial
+        autoClickEnabled = true -- Habilitar el auto-clicker
+        VirtualUser:Button1Down(lastClickPosition) -- Iniciar el clic
+    end
+end)
+
+-- Actualizar la posición del clic mientras el jugador desliza el dedo
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        lastClickPosition = Vector2.new(input.Position.X, input.Position.Y) -- Actualizar la posición
+        if autoClickEnabled then
+            VirtualUser:Button1Down(lastClickPosition) -- Simular clic mientras se desliza
+        end
+    end
+end)
+
+-- Detener el auto-clicker cuando el jugador levanta el dedo
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        autoClickEnabled = false -- Deshabilitar el auto-clicker
+        VirtualUser:Button1Up(lastClickPosition) -- Finalizar el clic
     end
 end)
 
