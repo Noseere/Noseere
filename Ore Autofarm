@@ -1,0 +1,109 @@
+-- Auto Farm Ores Script for Skywars (Classic)
+local Player = game.Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Create UI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = PlayerGui
+
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.8, 0, 0.1, 0) -- Ajusta la posición inicial
+Frame.BackgroundColor3 = Color3.new(0, 0, 0)
+Frame.Parent = ScreenGui
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "Auto Farm Ores"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+Title.Parent = Frame
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(1, 0, 0, 30)
+ToggleButton.Position = UDim2.new(0, 0, 0, 30)
+ToggleButton.Text = "Toggle Auto Farm"
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
+ToggleButton.Parent = Frame
+
+local equipped = false
+local autoFarming = false
+
+-- Function to equip the pickaxe
+local function equipPickaxe()
+    local backpack = Player:WaitForChild("Backpack")
+    local pickaxe = backpack:FindFirstChild("Pickaxe") -- Reemplaza con el nombre correcto del pico
+    if pickaxe then
+        Player.Character.Humanoid:EquipTool(pickaxe)
+        equipped = true
+    end
+end
+
+-- Function to farm ores
+local function farmOres()
+    while autoFarming do
+        equipPickaxe()
+        for _, ore in pairs(workspace:GetChildren()) do
+            if ore:IsA("Part") and ore.Name:find("Ore") then -- Ajusta esto si es necesario
+                if (ore.Position - Player.Character.HumanoidRootPart.Position).magnitude < 10 then
+                    Player.Character.Humanoid:MoveTo(ore.Position)
+                    wait(1) -- Ajusta según el tiempo que toma romper el ore
+                end
+            end
+        end
+        wait(0.5) -- Pausa entre intentos de recolección
+    end
+end
+
+-- Dragging functionality
+local dragToggle = nil
+local dragInput = nil
+local startPos = nil
+
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragToggle = true
+        startPos = input.Position
+        dragInput = input
+    end
+end)
+
+Frame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch and dragToggle then
+        local delta = input.Position - startPos
+        Frame.Position = UDim2.new(Frame.Position.X.Scale, Frame.Position.X.Offset + delta.X, Frame.Position.Y.Scale, Frame.Position.Y.Offset + delta.Y)
+        startPos = input.Position
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input == dragInput then
+        dragToggle = false
+    end
+end)
+
+-- Button click event
+ToggleButton.MouseButton1Click:Connect(function()
+    autoFarming = not autoFarming
+    if autoFarming then
+        ToggleButton.BackgroundColor3 = Color3.new(1, 0, 0)
+        ToggleButton.Text = "Stop Auto Farm"
+        farmOres()
+    else
+        ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
+        ToggleButton.Text = "Toggle Auto Farm"
+    end
+end)
+
+-- Close UI on escape
+UIS.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Escape then
+        ScreenGui:Destroy()
+    end
+end)
+
+-- Initialize UI
+equipPickaxe()
