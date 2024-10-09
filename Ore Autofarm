@@ -1,64 +1,72 @@
 -- Auto Farm Ores Script for Skywars (Classic)
-local Player = game.Players.LocalPlayer
-local PlayerGui = Player:WaitForChild("PlayerGui")
-local UIS = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
--- Create UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = PlayerGui
-
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 200, 0, 100)
-Frame.Position = UDim2.new(0.8, 0, 0.1, 0) -- Ajusta la posición inicial
-Frame.BackgroundColor3 = Color3.new(0, 0, 0)
-Frame.Parent = ScreenGui
-
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Auto Farm Ores"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.BackgroundTransparency = 1
-Title.Parent = Frame
-
-local ToggleButton = Instance.new("TextButton")
-ToggleButton.Size = UDim2.new(1, 0, 0, 30)
-ToggleButton.Position = UDim2.new(0, 0, 0, 30)
-ToggleButton.Text = "Toggle Auto Farm"
-ToggleButton.TextColor3 = Color3.new(1, 1, 1)
-ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
-ToggleButton.Parent = Frame
-
-local equipped = false
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local backpack = player:WaitForChild("Backpack")
 local autoFarming = false
 
--- Function to equip the pickaxe
+-- Función para equipar el pico adecuado
 local function equipPickaxe()
-    local backpack = Player:WaitForChild("Backpack")
-    local pickaxe = backpack:FindFirstChild("Pickaxe") -- Reemplaza con el nombre correcto del pico
-    if pickaxe then
-        Player.Character.Humanoid:EquipTool(pickaxe)
-        equipped = true
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") and (tool.Name:find("Pickaxe") or tool.Name:find("Wood") or tool.Name:find("Stone") or tool.Name:find("Gold") or tool.Name:find("Iron") or tool.Name:find("Diamond")) then
+            character.Humanoid:EquipTool(tool)
+            return
+        end
     end
 end
 
--- Function to farm ores
+-- Función para farmear los minerales
 local function farmOres()
     while autoFarming do
         equipPickaxe()
         for _, ore in pairs(workspace:GetChildren()) do
-            if ore:IsA("Part") and ore.Name:find("Ore") then -- Ajusta esto si es necesario
-                if (ore.Position - Player.Character.HumanoidRootPart.Position).magnitude < 10 then
-                    Player.Character.Humanoid:MoveTo(ore.Position)
-                    wait(1) -- Ajusta según el tiempo que toma romper el ore
+            if ore:IsA("Part") and (ore.Name == "Coal" or ore.Name == "Emerald" or ore.Name == "Diamond" or ore.Name == "Gold") then
+                humanoidRootPart.CFrame = ore.CFrame -- Mover al jugador hacia el mineral
+                wait(0.5) -- Espera medio segundo para llegar
+                if ore:FindFirstChild("ClickDetector") then
+                    fireclickdetector(ore.ClickDetector) -- Simula el clic en el mineral
                 end
+                wait(1) -- Espera un segundo antes de buscar el siguiente mineral
             end
         end
         wait(0.5) -- Pausa entre intentos de recolección
     end
 end
 
--- Dragging functionality
+-- Configuración de la UI
+local ScreenGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.8, 0, 0.1, 0)
+Frame.BackgroundColor3 = Color3.new(0, 0, 0)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "Auto Farm Ores"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+
+local ToggleButton = Instance.new("TextButton", Frame)
+ToggleButton.Size = UDim2.new(1, 0, 0, 30)
+ToggleButton.Position = UDim2.new(0, 0, 0, 30)
+ToggleButton.Text = "Iniciar Auto Farm"
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    autoFarming = not autoFarming
+    if autoFarming then
+        ToggleButton.Text = "Detener Auto Farm"
+        ToggleButton.BackgroundColor3 = Color3.new(1, 0, 0)
+        farmOres()
+    else
+        ToggleButton.Text = "Iniciar Auto Farm"
+        ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
+    end
+end)
+
+-- Funcionalidad de UI arrastrable
 local dragToggle = nil
 local dragInput = nil
 local startPos = nil
@@ -79,31 +87,8 @@ Frame.InputChanged:Connect(function(input)
     end
 end)
 
-UIS.InputEnded:Connect(function(input)
+game:GetService("UserInputService").InputEnded:Connect(function(input)
     if input == dragInput then
         dragToggle = false
     end
 end)
-
--- Button click event
-ToggleButton.MouseButton1Click:Connect(function()
-    autoFarming = not autoFarming
-    if autoFarming then
-        ToggleButton.BackgroundColor3 = Color3.new(1, 0, 0)
-        ToggleButton.Text = "Stop Auto Farm"
-        farmOres()
-    else
-        ToggleButton.BackgroundColor3 = Color3.new(0, 1, 0)
-        ToggleButton.Text = "Toggle Auto Farm"
-    end
-end)
-
--- Close UI on escape
-UIS.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Escape then
-        ScreenGui:Destroy()
-    end
-end)
-
--- Initialize UI
-equipPickaxe()
